@@ -1,0 +1,221 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>CS 194-26 Project 1</title>
+  <meta name="description" content="Colorizing the Prokudin-Gorskii Photo Collection">
+  <meta name="author" content="Monica Tang">
+
+  <style>
+      *{
+          font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      }
+      p, ul, li {
+        line-height: 1.5;
+      }
+      body {
+          margin: 10%;
+          margin-top: 5%;
+          margin-bottom: 5%;
+      }
+      figure {
+          text-align: center;
+      }
+      figcaption{
+          text-align: center;
+      }
+  </style>
+
+</head>
+
+<body>
+<h1>Colorizing the Prokudin-Gorskii Photo Collection</h1>
+<h4>Project 1</h4>
+<h3>Monica Tang</h3>
+
+<hr>
+<h2>Overview:</h2>
+<p>
+    Prokudin-Gorskii captured thousands of "photos" of the Russian Empire by recording each scene onto glass plates with a red, a green, and a blue filter. His RGB glass plate negatives have been digitized and are now available online through the Library of Congress. Now, we are able to visualize life in color from the 1900s! This project aims to automatically produce a color image from these RGB plates via image-processing techniques.
+</p>
+
+<h2>Method:</h2>
+<p>
+    The main idea is to separate a digitized glass plate image into 3 separate color channel images: R, G, B, and to align the three images together. To do so, for 2 of the color channels, we determine the best (x, y) displacement vectors that align them to the third channel. One can choose any of the three channels as the reference channel for alignment; I chose to align the images to the Green channel (for reasons detailed below). 
+</p>
+
+<h2>Color Channels:</h2>
+<p>
+    Initially, I had aligned my Red and Green channels to the Blue channel. However, this did not produce satisfactory results for emir.tif. Aligning to the Green channel produced a cleaner result. Additionally, there were no obvious differences between aligning to the Blue or Green channel for the other images, so I decided to stick with Green for all of them.
+</p>
+<br>
+<hr>
+<h2>Naive Approach (Exhaustive Search):</h2>
+<p>
+    The straightforward way to align the images is to search over a window of (x, y) values and use a scoring metric to determine the most optimal (x, y) offset value. One such metric is the L2 Norm, also known as the Sum of Squared Differences (SSD), which is the metric I used. Another is Normalized Cross Correlation (NCC), but I found that this did not produce results as well-aligned as SSD.
+    <br><br>
+    Some adjustments can be made to the images beforehand to produce better results, such as cropping the borders. I used the middle 60% of each image to avoid the "dirty" borders influencing the scores of each (x, y) offset pair.
+    <br><br>
+    Below are the results for the low-resolution .jpeg images using exhaustive search on a window of [-15, 15]:
+</p>
+
+<figure>
+    <img src="out_path/out_cathedral.jpeg"> 
+    <figcaption>cathedral.jpeg <br> b offset: (-2, -5) <br> r offset: (1, 7)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_monastery.jpeg"> 
+    <figcaption>monastery.jpeg <br> b offset: (-2, 3) <br> r offset: (1, 6)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_tobolsk.jpeg"> 
+    <figcaption>tobolsk.jpeg <br> b offset: (-3, -3) <br> r offset: (1, 4)</figcaption>
+</figure>
+
+<h2>Pyramid Search:</h2>
+<p>
+    For large files, such as .tif files, it is far too expensive to use the naive approach. Therefore, a faster and more efficient algorithm must be used. Pyramid search uses a recursive approach to align the color channel images.
+    <br><br>
+    Essentially, we specify a scaling factor and the number of recursive steps (or levels) we want. And at each recursive step, we scale our image down by a scaling factor. When we are at our base case (the top-most level of the pyramid or if the image is small enough), we use the rescaled lowest-resolution version of the image and perform exhaustive search with a small window size. Before returning to the next lower level of the pyramid, the (x, y) displacement vector obtained must be scaled appropriately. This is then used as a starting point for the next level's image alignment. As we travel down the pyramid, we are refining the (x, y) displacement vecotr by aligning higher and higher resolution versions of the image until we reach the bottom-most level with the original resolution image.
+    <br><br>
+    For my base case, the window was [-10, 10] and at the other levels, [-5, 5]. I used 3 levels and a scaling factor of 4.
+    <br><br>
+    Below are the results for the high-resolution .tif images:
+</p>
+<figure>
+    <img src="out_path/out_church.jpeg" style="width:40%"> 
+    <figcaption>church.tif <br> b offset: (-4, -24) <br> r offset: (-8, 32)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_emir.jpeg" style="width:40%"> 
+    <figcaption>emir.tif <br> b offset: (-24, -48) <br> r offset: (16, 56)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_harvesters.jpeg" style="width:40%"> 
+    <figcaption>harvesters.tif <br> b offset: (-16, -60) <br> r offset: (-4, 64)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_icon.jpeg" style="width:40%"> 
+    <figcaption>icon.tif <br> b offset: (-16, -40) <br> r offset: (4, 48)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_lady.jpeg" style="width:40%"> 
+    <figcaption>lady.tif <br> b offset: (-8, -48) <br> r offset: (4, 60)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_melons.jpeg" style="width:40%"> 
+    <figcaption>melons.tif <br> b offset: (-8, -80) <br> r offset: (4, 96)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_onion_church.jpeg" style="width:40%"> 
+    <figcaption>onion_church.tif <br> b offset: (-28, -52) <br> r offset: (12, 56)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_self_portrait.jpeg" style="width:40%"> 
+    <figcaption>self_portrait.tif <br> b offset: (-28, -80) <br> r offset: (8, 96)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_three_generations.jpeg" style="width:40%"> 
+    <figcaption>three_generations.tif <br> b offset: (-16, -48) <br> r offset: (-4, 60)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_train.jpeg" style="width:40%"> 
+    <figcaption>train.tif <br> b offset: (-4, -44) <br> r offset: (28, 44)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_workshop.jpeg" style="width:40%"> 
+    <figcaption>workshop.tif <br> b offset: (0, -52) <br> r offset: (-12, 52)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_sittinglady.jpeg" style="width:40%"> 
+    <figcaption>sittinglady.tif <br> b offset: (-20, -36) <br> r offset: (16, 40)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_dog.jpeg" style="width:40%"> 
+    <figcaption>dog.tif <br> b offset: (0, -12) <br> r offset: (0, 68)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_fishingboat.jpeg" style="width:40%"> 
+    <figcaption>fishingboat.tif <br> b offset: (-16, -16) <br> r offset: (16, 64)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_girls.jpeg" style="width:40%"> 
+    <figcaption>girls.tif <br> b offset: (-8, 16) <br> r offset: (8, 24)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_family.jpeg" style="width:40%"> 
+    <figcaption>family.tif <br> b offset: (-28, -24) <br> r offset: (12, 116)</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_river.jpeg" style="width:40%"> 
+    <figcaption>river.tif <br> b offset: (-24, -16) <br> r offset: (20, 68)</figcaption>
+</figure>
+
+
+<hr>
+<h2>Auto-Contrast:</h2>
+<p>Using the skimage.exposure package, we can also automatically contrast our final images via contrast stretching. This is done with the rescale_intensity function, where we rescale the image's intensities so that they all lie between the 2nd and 98th percentile.</p>
+<p>Below are several examples (hover to see the contrasted version):</p>
+<figure>
+    <img src="out_path/out_church.jpeg" 
+        onmouseover="this.src='./out_path/out_church_contrast.jpeg'"
+        onmouseout="this.src='./out_path/out_church.jpeg'"
+        style="width:40%" >
+    <figcaption>church.tif</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_lady.jpeg" 
+        onmouseover="this.src='./out_path/out_lady_contrast.jpeg'"
+        onmouseout="this.src='./out_path/out_lady.jpeg'"
+        style="width:40%" >
+    <figcaption>lady.tif</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_onion_church.jpeg" 
+        onmouseover="this.src='./out_path/out_onion_church_contrast.jpeg'"
+        onmouseout="this.src='./out_path/out_onion_church.jpeg'"
+        style="width:40%" >
+    <figcaption>onion_church.tif</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_three_generations.jpeg" 
+        onmouseover="this.src='./out_path/out_three_generations_contrast.jpeg'"
+        onmouseout="this.src='./out_path/out_three_generations.jpeg'"
+        style="width:40%" >
+    <figcaption>three_generations.tif</figcaption>
+</figure>
+
+<figure>
+    <img src="out_path/out_girls.jpeg" 
+        onmouseover="this.src='./out_path/out_girls_contrast.jpeg'"
+        onmouseout="this.src='./out_path/out_girls.jpeg'"
+        style="width:40%" >
+    <figcaption>girls.tif</figcaption>
+</figure>
+
+</body>
+</html>
