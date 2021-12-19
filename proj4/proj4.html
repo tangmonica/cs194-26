@@ -1,0 +1,785 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="Monica Tang">
+
+  <style>
+      *{
+          font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      }
+      p, ul, li {
+        line-height: 1.5;
+      }
+      body {
+          margin: 10%;
+          margin-top: 5%;
+          margin-bottom: 5%;
+      }
+      .toc {
+        font-size: small;
+      }
+      img {
+        margin: 5px;
+      }
+      figure {
+        margin: 5px;
+      }
+      figcaption{
+          text-align: center;
+      }
+      .gallery {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: visible;
+      }
+      .credit {
+        text-align: right;
+        margin-right: 5%;
+        color: dimgray;
+        font-size: small;
+      }
+      .vl {
+        border-left: 1px solid black;
+        height: 240px;
+      }
+  </style>
+
+</head>
+
+<body>
+<h1>Auto-Stitching Photo Mosaics</h1>
+<h4>Project 4</h4>
+<h3>Monica Tang</h3>
+
+<hr>
+<h4>Table of Contents:</h4>
+<p class="toc">
+  &emsp; <a href="#part-a">Part A: Image Warping and Mosaicing</a> <br>
+  &emsp; &emsp; <a href="#recover-h">Recover Homographies and Warping</a> <br>
+  &emsp; &emsp; <a href="#rectification">Image Rectification</a> <br>
+  &emsp; &emsp; <a href="#blending">Blending Images into a Mosaic</a> <br>
+  &emsp; &emsp; <a href="#additional-a">Additional Examples</a> <br>
+  &emsp; &emsp; <a href="#reflection-a">Reflection</a> <br>
+  &emsp; <a href="#part-b">Part B: Feature Matching for Auto-stitching</a> <br>
+  &emsp; &emsp; <a href="#harris">Harris Interest Point Detection</a> <br>
+  &emsp; &emsp; <a href="#anms">Adaptive Non-Maximal Suppression (ANMS)</a> <br>
+  &emsp; &emsp; <a href="#descriptors">Extracting Feature Descriptors</a> <br>
+  &emsp; &emsp; <a href="#matching">Matching Feature Descriptors</a> <br>
+  &emsp; &emsp; <a href="#ransac">Computing a Homography with RANSAC</a> <br>
+  &emsp; &emsp; <a href="#warp-blend">Warping and Blending</a> <br>
+  &emsp; &emsp; <a href="#additional-b">Additional Examples</a> <br>
+  &emsp; &emsp; <a href="#reflection-b">Reflection</a> <br> <br>
+</p>
+<hr>
+
+<h2 id="part-a">Part A: Image Warping and Mosaicing</h2>
+
+<hr>
+
+<h2 id="recover-h">Recover Homographies</h2>
+<p>
+  In order to perspective-warp one image to another, we need to compute the transformation matrix, which in this case is a homography.
+  The homography is a 3x3 matrix with 8 degrees of freedom (the bottom right entry of H is a scaling factor and can be set to 1.)
+</p>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/website/H_eqn.png" width="400">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/website/H_matrix.png" width="400">
+    <figcaption></figcaption>
+  </figure>
+</div>
+<p class="credit">Figures by <a href="https://towardsdatascience.com/estimating-a-homography-matrix-522c70ec4b2c">Zadeh</a></p>
+<p>
+  To recover the homography, we need pairs of corresponding points from the two images.
+  Four correspondences are needed to fully recover the homography matrix, though using more than four may produce more desirable results.
+  With four, we can simply solve the following linear system of equations, Ah = b,
+  where h is a vector containing the entries of H, and b is a vector containing the x and y coordinates of the destination image's correspondence points.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/website/homography_system.png" width="600">
+    <figcaption></figcaption>
+  </figure>
+</div>
+<p class="credit">Figure by <a href="https://towardsdatascience.com/estimating-a-homography-matrix-522c70ec4b2c">Zadeh</a></p>
+<p>
+  As was previously stated, it may be beneficial for us to use more than 4 correspondences because it may result in a more stable homography recovery.
+  In this case, we will need to solve the over-determined system with least-squares, but the equation setup is similar to the one above.
+</p>
+<h2>Warp the Images</h2>
+<p>
+  Once we have the homography, we can warp the images.
+  I decided to use inverse warping, which applies the inverse homography matrix to destination image pixels in order to sample source image pixels.
+</p>
+<br>
+<hr>
+<h2 id="rectification">Image Rectification</h2>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/website/flagellation_of_christ.png" height="350">
+    <figcaption><i>Flagellation of Christ</i></figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/website/flagellation_floor.png" height="350">
+    <figcaption>Rectified Floor Pattern</figcaption>
+  </figure>
+</div>
+<p class="credit">Rectification by <a href="https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/Criminisi_techrep2002.pdf">Criminisi, Kemp, Zisserman</a></p>
+<p>
+  Suppose we would like to view the floor pattern in the painting, <i>Flagellation of Christ</i> by Piero della Francesca.
+  Or perhaps, we would like to view a planar surface in a front-facing view.
+  We can do exactly this through image rectification.
+</p>
+<p>
+  With a homography and a warp function, we can now "rectify" images that contain planar surfaces so that the planes are frontal-parallel.
+  This is done by warping the surface in the image to a rectangle.
+  <br><br>
+  For example, below is a ceiling painting that has been rectified.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/rectification/ceiling_painting.jpg" height="250">
+    <figcaption>Original</figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/out_path/rectification/ceiling_painting_points.jpg" height="270">
+    <figcaption>With Correspondences</figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/out_path/rectification/ceiling_painting_rectified.jpg" height="360">
+    <figcaption>Rectified</figcaption>
+  </figure>
+</div>
+<p>
+  The same can be done with walls, windows, museum paintings, etc. Here are two more examples, one of a cat sitting in front of a window, and another of graffiti:
+</p>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/rectification/window_cat.jpg" height="250">
+    <figcaption>Original</figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/out_path/rectification/window_cat_points.jpg" height="270">
+    <figcaption>With Correspondences</figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/out_path/rectification/window_cat_rectified.jpg" height="350">
+    <figcaption>Rectified</figcaption>
+  </figure>
+</div>
+<br>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/rectification/graffiti.jpg" width="250">
+    <figcaption>Original</figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/out_path/rectification/graffiti_points.jpg" width="285">
+    <figcaption>With Correspondences</figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/out_path/rectification/graffiti_rectified.jpg" width="270">
+    <figcaption>Rectified</figcaption>
+  </figure>
+</div>
+
+<br><hr>
+
+<h2 id="blending">Blending Images into a Mosaic</h2>
+<p>
+  With homographies and warping, we can also blend images into a mosaic (aka a panorama.)
+  <br>
+  <br>
+  There are several things to consider when shooting the photos though:
+</p>
+<ul>
+  <li>Unless the object is far away or planar, the photos should be taken from the same center of projection, which means we want to rotate, not translate, the camera.</li>
+  <li>The photos should have the same exposure and aperture settings.</li>
+  <li>It is recommended that the photos contain 40-70% overlap so that registration is easier.</li>
+</ul>
+<p>
+  Here are three images I took of Memorial Glade:
+</p>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/mosaic/glade/glade2.jpg" width="250">
+    <figcaption>Left</figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/data/mosaic/glade/glade_main.jpg" width="250">
+    <figcaption>Memorial Glade</figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/data/mosaic/glade/glade3.jpg" width="250">
+    <figcaption> Right </figcaption>
+  </figure>
+</div>
+<p>
+  Before warping these photos, I added an alpha channel mask to each image so that the image is more transparent near certain borders that I specify.
+  This will help prevent harsh edges when we blend the photos.
+</p>
+
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/out_path/mosaic/glade2_mask.png" width="250">
+    <figcaption>With Alpha Channel Mask</figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/out_path/mosaic/glade_main_mask.png" width="250">
+    <figcaption>No Transparency</figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/out_path/mosaic/glade3_mask.png" width="250">
+    <figcaption>With Alpha Channel Mask</figcaption>
+  </figure>
+</div>
+
+<p>
+  Now, we can define the correspondences and warp the images onto a large canvas.
+  Afterwards, we blend the warped images together with simple alpha blending.
+  <br><br>
+  Below is the resulting Memorial Glade mosaic.
+</p>
+
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/out_path/mosaic/glade_mosaic2.png" width="600">
+    <figcaption></figcaption>
+  </figure>
+</div>
+<h2 id="additional-a">Additional Examples</h2>
+<p>
+  The same procedure can be applied to produce more mosaics!
+  <br>
+  Below are some more photos from campus and their mosaics:
+</p>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/mosaic/evans/evans1.jpg" width="250">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/data/mosaic/evans/evans2.jpg" width="250">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/data/mosaic/evans/evans3.jpg" width="250">
+    <figcaption></figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/out_path/mosaic/evans_mosaic2.png" width="600">
+    <figcaption>Evans Hall</figcaption>
+  </figure>
+</div>
+<br>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/mosaic/stanley/stanley1.jpg" width="250">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/data/mosaic/stanley/stanley2.jpg" width="250">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="proj4a_web/data/mosaic/stanley/stanley3.jpg" width="250">
+    <figcaption></figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/out_path/mosaic/stanley_mosaic.png" width="600">
+    <figcaption>Stanley Hall</figcaption>
+  </figure>
+</div>
+
+<br><hr>
+<h2 id="reflection-a">Reflection</h2>
+<p>
+  I thought it was cool that surfaces in paintings, like floor patterns, that we normally would not be able to visualize, could be reconstructed using image rectification.
+  For more practical applications though, with image rectification, I can redeem all my poorly-taken museum photos...
+  <br><br>
+  As for image mosaicing, there are several areas I can improve on. In particular, the blending is not perfect, and this may be improved with a Laplacian stack.
+  Also, there is probably a better way of creating the alpha transparency masks for the original photos than the way I did so.
+  <br><br>
+  Overall, I learned a lot, and it was rewarding to see all the final images.
+</p>
+
+<hr>
+<hr>
+
+
+<h2 id="part-b">Part B: Feature Matching for Auto-stitching</h2>
+<p>
+  In Part A, we had to choose correspondence points by hand to compute the homographies.
+  Now, we would like to automate this process.
+  The following sections outline the procedure for doing so, which is based on the method in
+  <a href="https://inst.eecs.berkeley.edu/~cs194-26/fa21/hw/proj4/Papers/MOPS.pdf">this</a> Multi-Image Matching paper by Brown, Szeliski, Winder.
+</p>
+
+<h2 id="harris">Harris Interest Point Detection</h2>
+<p>
+  First, we need to detect the interest points.
+  As previously stated, we don't want to manually select these points anymore, so here we will use Harris corners as the interest points. <br> <br>
+  Below are the three images we want to mosaic and their Harris points.
+</p>
+
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/mosaic/glade/glade2.jpg" width="270">
+    <figcaption>Original: glade1.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/glade1_harris_all.jpg" width="300">
+    <figcaption>All Points</figcaption>
+  </figure>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/mosaic/glade/glade_main.jpg" width="270">
+    <figcaption>Original: glade2.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/glade2_harris_all.jpg" width="300">
+    <figcaption>All Points</figcaption>
+  </figure>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/mosaic/glade/glade3.jpg" width="270">
+    <figcaption>Original: glade3.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/glade3_harris_all.jpg" width="300">
+    <figcaption>All Points</figcaption>
+  </figure>
+</div>
+
+
+<h2 id="anms">Adaptive Non-Maximal Suppression (ANMS)</h2>
+<p>
+  We have far too many interest points; we would like to restrict the amount to n points. Here, I used n = 700.
+  However, if we naively select the strongest n features, they will be clustered along edges, resulting in a poor distribution of points.
+  In order to obtain points with a better distribution, we use Adaptive Non-Maximal Suppression (ANMS).
+  ANMS computes a suppression radius for each point (which is the smallest distance to a neighbor that is significantly stronger.)
+  The strongest feature thus has a suppression radius of infinity.
+  Afterwards, we can sort the points by suppression radius and take the top n points.
+  Now, instead of getting the n strongest features, we get the n most dominant in their region.
+</p>
+<p>
+  Below shows the comparisons between the naive method and the ANMS method.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/glade1_harris_naive.jpg" width="300">
+    <figcaption>Strongest 700</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/glade1_harris_anms.jpg" width="300">
+    <figcaption>ANMS</figcaption>
+  </figure>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="out_path/glade2_harris_naive.jpg" width="300">
+    <figcaption>Strongest 700</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/glade2_harris_anms.jpg" width="300">
+    <figcaption>ANMS</figcaption>
+  </figure>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="out_path/glade3_harris_naive.jpg" width="300">
+    <figcaption>Strongest 700</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/glade3_harris_anms.jpg" width="300">
+    <figcaption>ANMS</figcaption>
+  </figure>
+</div>
+
+<h2 id="descriptors">Extracting Feature Descriptors</h2>
+<p>
+  For each feature point, we sample a 40x40 pixel patch around the point and downsample it to a 8x8 patch.
+  Then, we bias/gain normalize the patch by subtracting it by the mean and dividing by the standard deviation.
+</p>
+<p>
+  The following shows one of the feature points and its feature descriptor patch.
+  We would need to do the same for all feature points to extract all the descriptors.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/glade1_descriptor_point.jpg" width="300">
+    <figcaption>Single Feature Point</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/glade1_patch_40.jpg" width="200">
+    <figcaption>40 x 40 Patch</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/glade1_patch_final.jpg" width="200">
+    <figcaption>Final 8 x 8 Patch</figcaption>
+  </figure>
+</div>
+
+
+<h2 id="matching">Matching Feature Descriptors</h2>
+<p>
+  Now that we have the feature descriptors for each image, we want to match them and create correspondences.
+  Using only SSD to compare patches may result in an undesirably high percentage of incorrect matches, as shown in the graph below.
+  Therefore, we will use Lowe's trick, which thresholds the ratio of the SSD of the closest match and the SSD of the second closest match.
+  Conceptually, we assume that there is only one correct match for each feature,
+  so we reject matches that have similar first- and second-best errors and
+  only keep matches in which the best SSD error is significantly better than all other errors.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="website/ssd.png" width="300">
+    <figcaption>SSD</figcaption>
+  </figure>
+   <figure>
+    <img src="website/lowes.png" width="300">
+    <figcaption>Lowe's Trick</figcaption>
+  </figure>
+</div>
+<p class="credit">Figures by Brown, Szeliski, Winder</p>
+
+<p>
+  For the following images, I used Lowe's trick with a threshold of 0.3.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/glade12_1_matched.jpg" width="300">
+    <figcaption>Matched: glade1.jpg</figcaption>
+  </figure>
+   <figure>
+    <img src="out_path/glade12_2_matched.jpg" width="300">
+    <figcaption>Matched: glade2.jpg</figcaption>
+  </figure>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="out_path/glade23_2_matched.jpg" width="300">
+    <figcaption>Matched: glade2.jpg</figcaption>
+  </figure>
+   <figure>
+    <img src="out_path/glade23_3_matched.jpg" width="300">
+    <figcaption>Matched: glade3.jpg</figcaption>
+  </figure>
+</div>
+
+
+<h2 id="ransac">Computing a Homography with RANSAC</h2>
+<p>
+  Matching features with Lowe's trick may still produce incorrect matches (i.e. outliers), so to compute a robust homography, we turn to RANSAC (Random Sample Consensus).
+  <br><br>
+  RANSAC randomly chooses 4 points in the source image and computes a homography.
+  Then, the homography is applied to each source feature point and compared to its corresponding destination feature point.
+  If the distance between the points is under some threshold epsilon, this match is considered an <i>inlier</i> and we keep it.
+  We loop through this process n times, and at the end, we take the largest set of inliers and recompute a homography.
+  <br><br>
+  I used n = 10,000 steps and epsilon = 1 pixel. Below are the results.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/glade12_1_ransac.jpg" width="300">
+    <figcaption>RANSAC: glade1.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/glade12_2_ransac.jpg" width="300">
+    <figcaption>RANSAC: glade2.jpg</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/glade23_2_ransac.jpg" width="300">
+    <figcaption>RANSAC: glade2.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/glade23_3_ransac.jpg" width="300">
+    <figcaption>RANSAC: glade3.jpg</figcaption>
+  </figure>
+</div>
+
+<h2 id="warp-blend">Warping and Blending</h2>
+<p>With our RANSAC homography, we can now warp and blend the images into a mosaic. The warping and blending procedure is the same as that in Part A.</p>
+<p>
+  I did however make one change to masking.
+  Keeping with the theme of automated mosaic-stitching,
+  I wanted to be able to use the same mask for all photos instead of creating unique alpha channel masks for each photo as I did in Part A.
+  As shown below, the alpha channel mask feathers the edges so that the image is more transparent near the image borders.
+  Although this made the image masking process faster and easier, the resulting mosaic borders are not as sharp as those in Part A.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/glade1_rgba.png" width="250">
+    <figcaption>glade1</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/glade2_rgba.png" width="250">
+    <figcaption>glade2</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/glade3_rgba.png" width="250">
+    <figcaption>glade3</figcaption>
+  </figure>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="out_path/glade_mosaic2.png" width="700">
+    <figcaption>Final Mosaic</figcaption>
+  </figure>
+</div>
+
+
+
+
+
+<hr>
+<h2 id="additional-b">Additional Examples</h2>
+<p>
+  Here are some additional mosaics using the automated feature matching method.
+</p>
+<h3>Evans Hall</h3>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/mosaic/evans/evans1.jpg" width="230">
+    <figcaption>Original: evans1.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/evans1_harris_all.jpg" width="250">
+    <figcaption>All Points</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/evans1_harris_naive.jpg" width="250">
+    <figcaption>Strongest 700</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/evans1_harris_anms.jpg" width="250">
+    <figcaption>ANMS</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/mosaic/evans/evans2.jpg" width="230">
+    <figcaption>Original: evans2.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/evans2_harris_all.jpg" width="250">
+    <figcaption>All Points</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/evans2_harris_naive.jpg" width="250">
+    <figcaption>Strongest 700</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/evans2_harris_anms.jpg" width="250">
+    <figcaption>ANMS</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/mosaic/evans/evans3.jpg" width="230">
+    <figcaption>Original: evans3.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/evans3_harris_all.jpg" width="250">
+    <figcaption>All Points</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/evans3_harris_naive.jpg" width="250">
+    <figcaption>Strongest 700</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/evans3_harris_anms.jpg" width="250">
+    <figcaption>ANMS</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/evans12_1_matched.jpg" width="250">
+    <figcaption>Matched: evans1.jpg</figcaption>
+  </figure>
+   <figure>
+    <img src="out_path/evans12_2_matched.jpg" width="250">
+    <figcaption>Matched: evans2.jpg</figcaption>
+  </figure>
+  <p>&emsp;</p>
+  <div class="vl"></div>
+  <figure>
+    <img src="out_path/evans23_2_matched.jpg" width="250">
+    <figcaption>Matched: evans2.jpg</figcaption>
+  </figure>
+   <figure>
+    <img src="out_path/evans23_3_matched.jpg" width="250">
+    <figcaption>Matched: evans3.jpg</figcaption>
+  </figure>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="out_path/evans12_1_ransac.jpg" width="250">
+    <figcaption>RANSAC: evans1.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/evans12_2_ransac.jpg" width="250">
+    <figcaption>RANSAC: evans2.jpg</figcaption>
+  </figure>
+  <p>&emsp;</p>
+  <div class="vl"></div>
+  <figure>
+    <img src="out_path/evans23_2_ransac.jpg" width="250">
+    <figcaption>RANSAC: evans2.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/evans23_3_ransac.jpg" width="250">
+    <figcaption>RANSAC: evans3.jpg</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/evans_mosaic.png" width="700">
+    <figcaption>Final Mosaic</figcaption>
+  </figure>
+</div>
+
+
+
+
+
+<h3>Stanley Hall</h3>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/mosaic/stanley/stanley1.jpg" width="230">
+    <figcaption>Original: stanley1.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/stanley1_harris_all.jpg" width="250">
+    <figcaption>All Points</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/stanley1_harris_naive.jpg" width="250">
+    <figcaption>Strongest 700</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/stanley1_harris_anms.jpg" width="250">
+    <figcaption>ANMS</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/mosaic/stanley/stanley2.jpg" width="230">
+    <figcaption>Original: stanley2.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/stanley2_harris_all.jpg" width="250">
+    <figcaption>All Points</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/stanley2_harris_naive.jpg" width="250">
+    <figcaption>Strongest 700</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/stanley2_harris_anms.jpg" width="250">
+    <figcaption>ANMS</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="proj4a_web/data/mosaic/stanley/stanley3.jpg" width="230">
+    <figcaption>Original: stanley3.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/stanley3_harris_all.jpg" width="250">
+    <figcaption>All Points</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/stanley3_harris_naive.jpg" width="250">
+    <figcaption>Strongest 700</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/stanley3_harris_anms.jpg" width="250">
+    <figcaption>ANMS</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/stanley12_1_matched.jpg" width="250">
+    <figcaption>Matched: stanley1.jpg</figcaption>
+  </figure>
+   <figure>
+    <img src="out_path/stanley12_2_matched.jpg" width="250">
+    <figcaption>Matched: stanley2.jpg</figcaption>
+  </figure>
+  <p>&emsp;</p>
+  <div class="vl"></div>
+  <figure>
+    <img src="out_path/stanley23_2_matched.jpg" width="250">
+    <figcaption>Matched: stanley2.jpg</figcaption>
+  </figure>
+   <figure>
+    <img src="out_path/stanley23_3_matched.jpg" width="250">
+    <figcaption>Matched: stanley3.jpg</figcaption>
+  </figure>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="out_path/stanley12_1_ransac.jpg" width="250">
+    <figcaption>RANSAC: stanley1.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/stanley12_2_ransac.jpg" width="250">
+    <figcaption>RANSAC: stanley2.jpg</figcaption>
+  </figure>
+  <p>&emsp;</p>
+  <div class="vl"></div>
+  <figure>
+    <img src="out_path/stanley23_2_ransac.jpg" width="250">
+    <figcaption>RANSAC: stanley2.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/stanley23_3_ransac.jpg" width="250">
+    <figcaption>RANSAC: stanley3.jpg</figcaption>
+  </figure>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="out_path/stanley_mosaic.png" width="700">
+    <figcaption>Final Mosaic</figcaption>
+  </figure>
+</div>
+<hr>
+<h2 id="reflection-b">Reflection</h2>
+<p>
+  Automatic feature detection and matching makes stitching mosaics a lot easier and is more precise than manual correspondence selection.
+  But, I did notice that the automatic method works better for images with buildings (like Stanley Hall which has many sharp corners and details)
+  than images with lots of even textures (like the Memorial Glade photos which contain a lot of sky).
+  <br><br>
+  Again, the blending and alpha channel masking can still use improvement.
+  Ideally, I would like to retain sharp mosaic borders but also prevent harsh lines in the interior of the mosaic, which can be achieved through 2-band blending.
+  <br><br>
+  Overall, although implementing part of a research paper was challenging, it helped me better understand the concepts and the motivation behind each step.
+</p>
+
+
+</body>
+</html>
