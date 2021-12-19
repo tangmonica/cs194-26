@@ -1,0 +1,261 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+      *{
+          font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      }
+      p {
+        line-height: 1.5;
+      }
+      body {
+          margin: 10%;
+          margin-top: 5%;
+          margin-bottom: 5%;
+      }
+      img {
+        margin: 5px;
+      }
+      figure {
+        margin: 5px;
+      }
+      figcaption{
+          text-align: center;
+      }
+      .gallery {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: visible;
+      }
+      .center {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .credit {
+        text-align: right;
+        margin-right: 5%;
+        color: dimgray;
+        font-size: small;
+      }
+  </style>
+
+</head>
+
+<body>
+<h1>Face Morphing and Modeling a Photo Collection</h1>
+<h4>Project 3</h4>
+<h3>Monica Tang</h3>
+<hr>
+<h2>Face Morphing</h2>
+<p>
+  The goal is to create an animation that morphs one face into another. <br>
+  A morph consists of two parts: a warp of the image shape and the cross-dissolve of the image colors. <br>
+  <br>
+  Throughout the morph animation, we want the facial features to match well, so we need to manually define pairs of corresponding points.
+  These points define the image shape.
+  Then, the Delaunay triangulation on the midway shape is computed so that we can warp the images.
+  The figures below illustrate the image shapes for the portraits of Anne Hathaway and Amy Adams. I used 61 points for each.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/morph/annehathaway_pts.jpg" width="300">
+    <figcaption>Anne Hathaway</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/morph/amyadams_pts.jpg" width="300">
+    <figcaption>Amy Adams</figcaption>
+  </figure>
+</div>
+<p class="credit">Photos taken by Martin Schoeller</p>
+<p>
+  In order to warp the triangles, we apply an affine transformation to each triangle: <br>
+  Rather than forward warping (where we apply the transformation on the source triangles to send each pixel to its corresponding location),
+  it is better to inverse warp (where we apply the inverse transformation on the destination triangles to grab the source pixel colors).
+  This is because inverse warping eliminates holes and also prevents over- or under-computing, but one small issue arises as a result of using this method.
+  After applying the inverse transformation on a pixel location in the destination triangle, the output may contain fractional values.
+  In other words, it may land between pixels in the source triangle. So, we will need a function to interpolate the pixel color from its neighbors.
+  <br><br>
+  Then, we cross-dissolve the two images.
+</p>
+<p>We repeat this process for each frame of the animation at increasing amounts of warp and cross-dissolve to produce a sequence of images.
+  Below is the computed midway face as well as the final morph animation.</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/morph/seq/anne_amy22.jpg" width="300">
+    <figcaption>Midway Face</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/morph/anne_amy_morph.gif" width="300">
+    <figcaption>Morph Animation</figcaption>
+  </figure>
+</div>
+
+<p>Here is another example of morphing using the faces of Mr. and Mrs. Andrews, from the Rococo painting <i>Mr and Mrs Andrews</i> by Thomas Gainsborough. </p>
+<div class="gallery">
+  <figure>
+    <img src="data/andrews/mr.jpg" width="200">
+    <figcaption>Mr. Andrews</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/andrews/mr_pts.jpg" width="240">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="data/andrews/mrs.jpg" width="200">
+    <figcaption>Mrs. Andrews</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/andrews/mrs_pts.jpg" width="240">
+    <figcaption></figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/andrews/seq/andrewsmorph22.jpg" width="300">
+    <figcaption>Midway Face</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/andrews/mr_mrs_morph.gif" width="300">
+    <figcaption>Morph Animation</figcaption>
+  </figure>
+</div>
+<p class="credit">from <i>Mr and Mrs Andrews</i> by Thomas Gainsborough (1750)</p>
+
+
+<h2>"Mean Face" of a Population</h2>
+<p>
+  Using a set of images of a population, we can compute the average face for that population.
+  This can be done for subsets of a population, such as old, young, male, female, by ethnicity, etc.
+</p>
+<p>
+  Here, I used the <a href="https://web.archive.org/web/20210305094647/http://www2.imm.dtu.dk/~aam/datasets/datasets.html">Danes</a> IMM Face database as my population.
+  This dataset consists of 40 human faces, 7 female and 33 male.
+  To compute the average face, we can simply compute the average shape, morph each image into the average shape, and cross-dissolve all of them.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="data/danes/danes_all.jpg" height="350">
+    <figcaption>All Faces</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/danes/danes_meanface.jpg" height="350">
+    <figcaption>"Mean Face"</figcaption>
+  </figure>
+</div>
+<p>Below are several of the dataset faces that were warped into the average shape. </p>
+<div class="gallery">
+  <figure>
+    <img src="data/danes/06-1m.jpg" width="200">
+    <figcaption>Original</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/danes/06-1_warped.jpg" width="200">
+    <figcaption>Warped to Average</figcaption>
+  </figure>
+  <figure>
+    <img src="data/danes/30-1f.jpg" width="200">
+    <figcaption>Original</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/danes/30-1_warped.jpg" width="200">
+    <figcaption>Warped to Average</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="data/danes/31-1m.jpg" width="200">
+    <figcaption>Original</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/danes/31-1_warped.jpg" width="200">
+    <figcaption>Warped to Average</figcaption>
+  </figure>
+  <figure>
+    <img src="data/danes/35-1f.jpg" width="200">
+    <figcaption>Original</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/danes/35-1_warped.jpg" width="200">
+    <figcaption>Warped to Average</figcaption>
+  </figure>
+</div>
+
+<p>
+  We can also warp faces outside the dataset to the mean Danes face geometry, and also the Danes face to other face geometries.
+  Below are examples using my face.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="data/morphfaces/me_landscape.jpg" width="300">
+    <figcaption>My Face</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/mean_face/me_to_avg3.jpg" width="300">
+    <figcaption>Warped to Average Danes Face Geometry</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/danes/danes_meanface.jpg" width="300">
+    <figcaption>Average Danes Face</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/mean_face/avg_to_me3.jpg" width="300">
+    <figcaption>Warped to My Face Geometry</figcaption>
+  </figure>
+</div>
+
+<h2>Caricatures</h2>
+<p>
+  Previously, our warps used warp-fraction values (or alphas) between 0 and 1. But these are not the only possible values.
+  We can extrapolate, and use alphas less than 0 or greater than 1 to produces caricatures.
+  The following are examples of my face extrapolated from the Danes mean face using several different alphas.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/caricature/my_caricature4.jpg" width="250">
+    <figcaption>alpha = -2</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/caricature/my_caricature3.jpg" width="250">
+    <figcaption>alpha = -1</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/caricature/my_caricature2.jpg" width="250">
+    <figcaption>alpha = -0.5</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/caricature/my_caricature1.jpg" width="250">
+    <figcaption>alpha = 1.5</figcaption>
+  </figure>
+</div>
+
+<h2>Bells & Whistles</h2>
+<p>Additional examples using the above methods:</p>
+<p>
+  The following is a morph sequence of the members of a Korean/Chinese music group, called NCT, in order from oldest to youngest.
+  There are 23 members (as of October 2021).
+</p>
+<div class="gallery">
+  <iframe width="560" height="315" src="https://www.youtube.com/embed/61TAb8WQ9CM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
+<p>Below is the average face of all 23 members...resulting in the 24th member!</p>
+<div class="gallery">
+  <figure>
+    <img src="data/nct/nct_all.jpg" height="350">
+    <figcaption>All Members</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/nct/nct_meanface.jpg" height="350">
+    <figcaption>Average Face</figcaption>
+  </figure>
+</div>
+
+</body>
+</html>
