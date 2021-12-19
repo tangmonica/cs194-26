@@ -1,0 +1,628 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="Monica Tang">
+
+  <style>
+      *{
+          font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      }
+      p, ul, li {
+        line-height: 1.5;
+      }
+      body {
+          margin: 10%;
+          margin-top: 5%;
+          margin-bottom: 5%;
+      }
+      .toc {
+        font-size: small;
+      }
+      img {
+        margin: 5px;
+      }
+      figure {
+        margin: 5px;
+      }
+      figcaption{
+          text-align: center;
+      }
+      .gallery {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: visible;
+      }
+      .credit {
+        text-align: right;
+        margin-right: 5%;
+        color: dimgray;
+        font-size: small;
+      }
+      .vl {
+        border-left: 1px solid black;
+        height: 240px;
+      }
+      .code-block {
+        font-family: monospace;
+      }
+      .code-container {
+        display: flex;
+        justify-content: center;
+      }
+      code {
+        font-family: Consolas,"courier new";
+        color: crimson;
+        background-color: #f1f1f1;
+        padding: 2px;
+        font-size: 105%;
+      }
+  </style>
+
+</head>
+
+<body>
+<h1>Facial Keypoint Detection with Neural Nets</h1>
+<h4>Project 5</h4>
+<h3>Monica Tang</h3>
+<hr>
+<h4>Table of Contents:</h4>
+<p class="toc">
+  &emsp; <a href="#part-1">Part 1: Nose Tip Detection</a> <br>
+  &emsp; <a href="#part-2">Part 2: Full Facial Keypoints Detection</a> <br>
+  &emsp; <a href="#part-3">Part 3: Train with a Larger Dataset</a>
+</p>
+<hr>
+<p>
+  The goal of this project is to automatically detect facial keypoints with a deep convolutional neural network (CNN).
+  To train and validate our networks, we will use the IMM Face Dataset for Parts 1 and 2 and the iBUG Face Dataset for Part 3.
+</p>
+<hr>
+<h2 id="part-1">Part 1: Nose Tip Detection</h2>
+<p>
+  For both Part 1 and Part 2, we will use the IMM Face Dataset which contains 240 facial images of 40 persons; each person has 6 facial images in different viewpoints.
+  We will use the first 32 persons' images (32 x 6 = 192 total images) for the training set and the last 8 persons' images (8 x 6 = 48 total images) for the validation set.
+  <br><br>
+  Let's first visualize our data and nose keypoints. The images are resized to 80x60 and converted to grayscale.
+  Here a few of the samples with their ground-truth nose keypoints.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/nose_groundtruth17.png" width="200">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/nose_groundtruth38.png" width="200">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/nose_groundtruth58.png" width="200">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/nose_groundtruth126.png" width="200">
+    <figcaption></figcaption>
+  </figure>
+</div>
+
+<p>
+  We will now define our convolutional neural network (CNN).
+  I used 3 convolutional layers (<code>torch.nn.Conv2d</code>),
+  each followed by a Rectilinear Unit (ReLu) layer (<code>torch.nn.ReLu</code>) as non-linearity and a max pooling layer (<code>torch.nn.MaxPool2d</code>) of size 2.
+  Then, this is followed by 2 fully connected layers (with a ReLu layer in between).
+</p>
+
+<div class="code-container">
+  <p class="code-block">
+    NoseKeypointNet( <br>
+    &emsp; (conv1): Conv2d(1, 16, kernel_size=(3, 3), stride=(1, 1)) <br>
+    &emsp; (conv2): Conv2d(16, 32, kernel_size=(3, 3), stride=(1, 1)) <br>
+    &emsp; (conv3): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1)) <br>
+    &emsp; (fc1): Linear(in_features=2560, out_features=256, bias=True) <br>
+    &emsp; (fc2): Linear(in_features=256, out_features=2, bias=True) <br>
+    )
+  </p>
+</div>
+
+<p>
+  With this network, we can start training the CNN and predicting keypoints.
+  We will use mean squared error (MSE) loss (<code>torch.nn.MSELoss</code>) as the prediction loss and train the CNN using Adam (<code>torch.optim.Adam</code>).
+  Tweaking the hyperparameters (e.g. number of layers, channel size, filter size, learning rate) will produce different results.
+  I used a batch size of 4, trained the network for 25 epochs, and tuned the learning rate and network's kernel filter size.
+  <br><br>
+  Here are the different loss curves for the training and validation sets when we change the learning rate:
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/nose_loss_2-3.jpg" width="350">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/nose_loss_3-3.jpg" width="350">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/nose_loss_4-3.jpg" width="350">
+    <figcaption></figcaption>
+  </figure>
+</div>
+<p>
+  Here are the different loss curves for the training and validation sets when we change the kernel filter size:
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/nose_loss_3-3.jpg" width="350">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/nose_loss_3-5.jpg" width="350">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/nose_loss_3-7.jpg" width="350">
+    <figcaption></figcaption>
+  </figure>
+</div>
+
+<p>
+  I decided to go with a learning rate of 1e-3 and kernel size of 3 (as defined in the above CNN).
+  The following are several examples using this trained network to predict nose keypoints (predictions in blue, ground-truth in red):
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/nose_incorrect1.jpg" width="200">
+    <figcaption>Bad Prediction</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/nose_incorrect2.jpg" width="200">
+    <figcaption>Bad Prediction</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/nose_correct1.jpg" width="200">
+    <figcaption>Good Prediction</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/nose_correct2.jpg" width="200">
+    <figcaption>Good Prediction</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/nose_correct3.jpg" width="200">
+    <figcaption>Good Prediction</figcaption>
+  </figure>
+</div>
+<p>
+  In general, the network predicted nose keypoints better for faces looking straight ahead than those turned to the side.
+  This is probably because a majority of the training data was front-facing faces.
+</p>
+<h2 id="part-2">Part 2: Full Facial Keypoints Detection</h2>
+<p>
+  Now, we will detect all 58 facial keypoints.
+  Similar to Part 1, we will first load in our data and visualize it. The images are resized to 240x180 and converted to grayscale.
+  <br><br>
+  Since our dataset is small, we will need data augmentation to prevent the model from overfitting.
+  Data augmentation involves applying random transformations to the training data.
+  I chose to apply random rotations of -15 to 15 degrees, shifts of -10 to 10 pixels in both the x and y directions, and brightness changes.
+  <br><br>
+  Below are several samples displaying the image and the ground-truth keypoints.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/face_groundtruth2.png" width="250">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/face_groundtruth20.png" width="250">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/face_groundtruth80.png" width="250">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/face_groundtruth150.png" width="250">
+    <figcaption></figcaption>
+  </figure>
+</div>
+
+<p>
+  The CNN layers used for predicting facial keypoints is defined below. Each convolution layer is followed by a ReLu and max pooling layer, similar to the CNN in Part 1.
+</p>
+
+<div class="code-container">
+  <p class="code-block">
+    FaceKeypointNet( <br>
+    &emsp;  (conv1): Conv2d(1, 16, kernel_size=(3, 3), stride=(1, 1)) <br>
+    &emsp;  (conv2): Conv2d(16, 32, kernel_size=(3, 3), stride=(1, 1)) <br>
+    &emsp;  (conv3): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1)) <br>
+    &emsp;  (conv4): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1)) <br>
+    &emsp;  (conv5): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1)) <br>
+    &emsp;  (pool): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False) <br>
+    &emsp;  (fc1): Linear(in_features=3840, out_features=256, bias=True) <br>
+    &emsp;  (fc2): Linear(in_features=256, out_features=116, bias=True) <br>
+    )
+  </p>
+</div>
+
+<p>
+  We will also train the network with MSELoss and Adam as we did in Part 1. <br>
+  Below are the resulting loss curves for the datasets with batch sizes of 8:
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/face_loss.jpg" width="500">
+    <figcaption></figcaption>
+  </figure>
+</div>
+
+<p>
+  Here is a selection of the results, with predictions (blue) and ground-truth keypoints (red):
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/face_incorrect1.jpg" width="250">
+    <figcaption>Bad Prediction</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/face_incorrect2.jpg" width="250">
+    <figcaption>Bad Prediction</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/face_correct1.jpg" width="250">
+    <figcaption>Good Prediction</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/face_correct2.jpg" width="250">
+    <figcaption>Good Prediction</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/face_correct3.jpg" width="250">
+    <figcaption>Good Prediction</figcaption>
+  </figure>
+</div>
+
+<p>
+  Let's also visualize our CNN's learned filters:
+</p>
+
+<div class="gallery">
+  <figure>
+    <img src="out_path/conv1.png" width="200">
+    <figcaption>conv1</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/conv2.png" width="200">
+    <figcaption>conv2</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/conv3.png" width="200">
+    <figcaption>conv3</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/conv4.png" width="400">
+    <figcaption>conv4</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/conv5.png" width="400">
+    <figcaption>conv5</figcaption>
+  </figure>
+</div>
+
+
+<h2 id="part-3">Part 3: Train with a Larger Dataset</h2>
+<p>
+  Now, we will train our network with the iBUG Face in the Wild dataset, which contains 6666 images of varying sizes and 68 annotated facial keypoints per image.
+  With each image in the dataset comes a bounding box generated by dlib's default face detector.
+  We will use this bounding box to crop the images so that the images we train our network on only include the faces.
+  Then, we resize the images to 224x224 and convert them to grayscale.
+  Similar to Part 2, we will use data augmentation, such as random rotations, shifts, and brightness changes, to prevent overfitting.
+  The dataset is also randomly split 80% into a training set and 20% into a validation set.
+  <br><br>
+  Here are several samples with their ground-truth keypoints:
+</p>
+
+<div class="gallery">
+  <figure>
+    <img src="out_path/ibug_groundtruth0.png" width="180">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_groundtruth4.png" width="180">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_groundtruth2.png" width="180">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_groundtruth3.png" width="180">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_groundtruth1.png" width="180">
+    <figcaption></figcaption>
+  </figure>
+</div>
+
+<p>
+  The network we will use will be a pre-trained ResNet18 model (<code>torchvision.models.resnet18</code>)
+  that we modify to take in grayscale images and output 136 prediction values (68 keypoints * 2 (x and y coordinates)).
+  <br><br>
+  Below are the details of the model architecture:
+</p>
+
+<div class="code-container">
+  <p class="code-block">
+    iBugFaceNet(  <br>
+    &emsp;   (resnet18): ResNet(  <br>
+    &emsp; &emsp;     (conv1): Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)  <br>
+    &emsp; &emsp;     (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp;     (relu): ReLU(inplace=True)  <br>
+    &emsp; &emsp;     (maxpool): MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)  <br>
+    &emsp; &emsp;     (layer1): Sequential(  <br>
+    &emsp; &emsp; &emsp;       (0): BasicBlock(  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (relu): ReLU(inplace=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp;       )  <br>
+    &emsp; &emsp; &emsp;       (1): BasicBlock(  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (relu): ReLU(inplace=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp;       )  <br>
+    &emsp; &emsp;     )  <br>
+    &emsp; &emsp;     (layer2): Sequential(  <br>
+    &emsp; &emsp; &emsp;       (0): BasicBlock(  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv1): Conv2d(64, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (relu): ReLU(inplace=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (downsample): Sequential(  <br>
+    &emsp; &emsp; &emsp; &emsp; &emsp;           (0): Conv2d(64, 128, kernel_size=(1, 1), stride=(2, 2), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp; &emsp;           (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         )  <br>
+    &emsp; &emsp; &emsp;       )  <br>
+    &emsp; &emsp; &emsp;       (1): BasicBlock(  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv1): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (relu): ReLU(inplace=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp;       )  <br>
+    &emsp; &emsp;     )  <br>
+    &emsp; &emsp;     (layer3): Sequential(  <br>
+    &emsp; &emsp; &emsp;       (0): BasicBlock(  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv1): Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (relu): ReLU(inplace=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (downsample): Sequential(  <br>
+    &emsp; &emsp; &emsp; &emsp; &emsp;           (0): Conv2d(128, 256, kernel_size=(1, 1), stride=(2, 2), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp; &emsp;           (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         )  <br>
+    &emsp; &emsp; &emsp;       )  <br>
+    &emsp; &emsp; &emsp;       (1): BasicBlock(  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv1): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (relu): ReLU(inplace=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp;       )  <br>
+    &emsp; &emsp;     )  <br>
+    &emsp; &emsp;     (layer4): Sequential(  <br>
+    &emsp; &emsp; &emsp;       (0): BasicBlock(  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv1): Conv2d(256, 512, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (relu): ReLU(inplace=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (downsample): Sequential(  <br>
+    &emsp; &emsp; &emsp; &emsp; &emsp;           (0): Conv2d(256, 512, kernel_size=(1, 1), stride=(2, 2), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp; &emsp;           (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         )  <br>
+    &emsp; &emsp; &emsp;       )  <br>
+    &emsp; &emsp; &emsp;       (1): BasicBlock(  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv1): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (relu): ReLU(inplace=True)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)  <br>
+    &emsp; &emsp; &emsp; &emsp;         (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)  <br>
+    &emsp; &emsp; &emsp;       )  <br>
+    &emsp; &emsp;     )  <br>
+    &emsp; &emsp;     (avgpool): AdaptiveAvgPool2d(output_size=(1, 1))  <br>
+    &emsp; &emsp;     (fc): Linear(in_features=512, out_features=136, bias=True)  <br>
+    &emsp;   )  <br>
+    )
+  </p>
+</div>
+
+<p>
+  Training the model on a batch size of 128 with a learning rate of 1e-3 for 50 epochs produces the following loss curves.
+</p>
+
+<div class="gallery">
+  <figure>
+    <img src="out_path/ibug_loss128_50.jpg" width="500">
+    <figcaption></figcaption>
+  </figure>
+</div>
+
+<p>
+  Here are the results; we compare the model's predictions (blue) with the ground-truth keypoints (red) for images in the validation dataset.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/ibug_prediction1.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_prediction2.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_prediction3.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_prediction4.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_prediction5.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/ibug_prediction6.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_prediction7.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_prediction8.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_prediction9.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_prediction10.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/ibug_prediction11.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_prediction12.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_prediction13.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_prediction14.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/ibug_prediction15.jpg" width="150">
+    <figcaption></figcaption>
+  </figure>
+</div>
+
+<p>
+  We can also predict facial keypoints on images in our Kaggle test dataset (which does not contain pre-annotated ground-truth facial keypoints).
+  For the class Kaggle competition, my model scored a 7.87074.
+  In the images below, the red points are the predicted keypoints.
+</p>
+
+<div class="gallery">
+  <figure>
+    <img src="out_path/kaggle_prediction1.jpg" height="200">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/kaggle_prediction2.jpg" height="200">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/kaggle_prediction3.jpg" height="200">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/kaggle_prediction4.jpg" height="200">
+    <figcaption></figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/kaggle_prediction5.jpg" height="200">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/kaggle_prediction6.jpg" height="200">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/kaggle_prediction7.jpg" height="200">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/kaggle_prediction8.jpg" height="200">
+    <figcaption></figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/kaggle_prediction9.jpg" height="200">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/kaggle_prediction10.jpg" height="200">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/kaggle_prediction11.jpg" height="200">
+    <figcaption></figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/kaggle_prediction12.jpg" height="200">
+    <figcaption></figcaption>
+  </figure>
+</div>
+
+<p>
+  Finally, we can also predict facial keypoints on our own images.
+  Here, I manually cropped the images to fit a 224x224 square before sending them to the CNN.
+  Again, the red points are the predicted keypoints.
+</p>
+
+<div class="gallery">
+  <figure>
+    <img src="out_path/my_image0.jpg" height="250">
+    <figcaption>Viola Davis</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/my_image1.jpg" height="250">
+    <figcaption>Emma Stone</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/my_image2.jpg" height="250">
+    <figcaption>Vig&eacute;e Le Brun</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/my_image3.jpg" height="250">
+    <figcaption>Joe Gardner</figcaption>
+  </figure>
+</div>
+
+<p>
+  Since the CNN was trained on images where the face occupied a larger fraction of the image, the predictions here are not as good as those from the validation dataset.
+  It's likely we will get better results if we had used the dlib facial detector to generate the bounding boxes for cropping
+  because the model was trained on cropped images using this method.
+  Not surprisingly, the model predicts keypoints better for realistic human faces than cartoon faces (e.g. Joe Gardner) which often have exaggerated facial proportions.
+</p>
+
+</body>
+</html>
