@@ -1,0 +1,375 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="Monica Tang">
+
+  <style>
+      *{
+          font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      }
+      p, ul, li {
+        line-height: 1.5;
+      }
+      body {
+          margin: 10%;
+          margin-top: 5%;
+          margin-bottom: 5%;
+      }
+      .toc {
+        font-size: small;
+      }
+      img {
+        margin: 5px;
+      }
+      figure {
+        margin: 5px;
+      }
+      figcaption{
+          text-align: center;
+      }
+      .gallery {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: visible;
+      }
+      .credit {
+        text-align: right;
+        margin-right: 5%;
+        color: dimgray;
+        font-size: small;
+      }
+      .vl {
+        border-left: 1px solid black;
+        height: 240px;
+      }
+      .code-block {
+        font-family: monospace;
+      }
+      .code-container {
+        display: flex;
+        justify-content: center;
+      }
+      code {
+        font-family: Consolas,"courier new";
+        color: crimson;
+        background-color: #f1f1f1;
+        padding: 2px;
+        font-size: 105%;
+      }
+  </style>
+
+</head>
+
+<body>
+<h1>Image Quilting & Artistic Neural Style Transfer</h1>
+<h4>Final Projects</h4>
+<h3>Monica Tang</h3>
+<hr>
+<h4>Table of Contents:</h4>
+<p class="toc">
+  &emsp; <a href="#part-1">Image Quilting and Texture Transfer</a> <br>
+  &emsp; <a href="#part-2">Artistic Neural Style Transfer</a> <br>
+</p>
+<hr>
+
+<hr>
+<h2 id="part-1">Image Quilting and Texture Transfer</h2>
+
+<p>
+  Using the method described in a SIGGRAPH
+  <a href="https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/papers/efros-siggraph01.pdf">paper</a>
+  by Efros and Freeman, we can synthesize larger texture images using a small texture sample. Below is an example of what we will achieve.
+  We are also able to perform texture transfer, which involves giving an object the appearance of a texture while maintaining its shape.
+</p>
+<h3>Image Quilting</h3>
+<div class="gallery">
+  <figure>
+    <img src="final1/samples/bricks_small.jpg" width="150">
+    <figcaption>Bricks Texture</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/out_path/bricks_small_cut.jpg" width="250">
+    <figcaption>Result</figcaption>
+  </figure>
+
+  <figure>
+    <img src="final1/samples/knit.png" width="150">
+    <figcaption>Knit Texture</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/out_path/knit_cut.png" width="250">
+    <figcaption>Result</figcaption>
+  </figure>
+</div>
+<p>
+  The main idea of the image quilting method is to sample blocks (or patches) of the texture sample
+  and find other blocks in the sample that match in an overlapping region.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="blocks.png" width="570">
+    <figcaption></figcaption>
+  </figure>
+</div>
+<div class="credit">Figure from SIGGRAPH paper</div>
+<p>
+  As shown in the figure above, there are three approaches to image quilting that we will explore.
+  The first, a naive approach, simply places random patches next to each other.
+  This method does not produce satisfactory results, as can be seen below.
+  A better method involves randomly selecting only one patch and using this as the upper leftmost patch.
+  Then we select subsequent blocks based on the SSD error of their overlapping regions with the previous blocks.
+  In particular, we randomly choose a patch whose SSD cost is below a specified tolerance.
+  We achieve much better results with this approach. However, the harsh edge artifacts of these square blocks is noticeable in some cases.
+  The third approach eliminates these by cutting the blocks along a minimum error seam,
+  so instead of placing square blocks into our image quilt, we will place the seam-cut blocks.
+</p>
+<p>
+  Below are the results from each approach for the brick and knit textures.
+  The improvement for each method is most noticeable in the knit texture results.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="final1/out_path/bricks_small_random.jpg" width="200">
+    <figcaption>Random</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/out_path/bricks_small_simple.jpg" width="200">
+    <figcaption>Simple Overlap</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/out_path/bricks_small_cut.jpg" width="200">
+    <figcaption>Minimum Error Cut</figcaption>
+  </figure>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="final1/out_path/knit_random.png" width="200">
+    <figcaption>Random</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/out_path/knit_simple.png" width="200">
+    <figcaption>Simple Overlap</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/out_path/knit_cut.png" width="200">
+    <figcaption>Minimum Error Cut</figcaption>
+  </figure>
+</div>
+<p>The following are more examples of texture synthesis.</p>
+<div class="gallery">
+  <figure>
+    <img src="final1/samples/sponge.png" width="120">
+    <figcaption>Sponge Texture</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/out_path/sponge_cut.png" width="250">
+    <figcaption>Result</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="final1/samples/white_small.jpg" width="120">
+    <figcaption>Cottage Cheese <br>Texture</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/out_path/white_small_cut.jpg" width="250">
+    <figcaption>Result</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="final1/samples/chocolate.png" width="130">
+    <figcaption>Chocolate Frosting <br>Texture</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/out_path/chocolate_cut1.png" width="250">
+    <figcaption>Result</figcaption>
+  </figure>
+</div>
+
+
+<h3>Texture Transfer</h3>
+<p>
+  Now that we can synthesize textures from a sample, we can even transfer textures onto other images.
+  In order to preserve the shape of the object we want to transfer texture to (the target image),
+  we not only need to satisfy texture synthesis requirements but also a correspondences map between the texture and target image blocks.
+  More specifically, we not only need to compute the SSD of a block with the overlapping regions of its neighboring blocks,
+  but also of the block with a block from the target image.
+</p>
+<p>
+  Below is a sketch texture that we would like to transfer to an image of Feynman.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="final1/samples/sketch.jpg" width="130">
+    <figcaption>Sketch Texture</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/samples/feynman.jpg" width="250">
+    <figcaption>Feynman</figcaption>
+  </figure>
+</div>
+<p>
+  In my implementation, I used blurred image intensities as the correspondence map.
+</p>
+<p>
+  When determining the total SSD cost of a particular block, we take the weighted sum,
+  alpha times the block overlap error plus (1 - alpha) times the error of the block with its corresponding target image block.
+  The parameter alpha determines the tradeoff between texture synthesis and how closely the result matches the target image.
+</p>
+<p>
+  Performing one texture synthesis pass produces a non-iterative approach.
+  But we can also make multiple passes,
+  reducing the block size by one third and setting alpha to 0.8 * (iteration - 1) / (total iterations - 1) + 0.1,
+  for each iteration. In this method, we also need to match blocks with those in the previous iterations.
+  Below shows a comparison between the results of the non-iterative and iterative methods. I used 3 passes in the iterative method.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="final1/out_path/feynman_sketch.jpg" height="300">
+    <figcaption>Non-Iterative</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/out_path/feynman_sketch_iterative2.jpg" height="300">
+    <figcaption>Iterative</figcaption>
+  </figure>
+</div>
+<p>
+  In the iterative result, some of the facial features are slightly more defined (produced in later iterations),
+  and the larger characteristics of the texture are also retained (from earlier iterations).
+</p>
+<p>
+  Another example using the non-iterative method.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="final1/samples/woven_texture.png" height="160">
+    <figcaption>Woven Texture</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/samples/woman.png" height="350">
+    <figcaption>Woman</figcaption>
+  </figure>
+  <figure>
+    <img src="final1/out_path/woman_woven2.png" height="350">
+    <figcaption>Non-Iterative Result</figcaption>
+  </figure>
+</div>
+
+<p>
+  Texture transfer offers a way to render realistic photographs in non-photorealistic ways.
+  The next section will describe another way to do so, but with deep neural networks.
+</p>
+
+<hr><hr>
+
+
+<h2 id="part-2">Artistic Neural Style Transfer</h2>
+<p>
+  Using neural networks, we can transfer artistic styles to realistic photographs!
+  The research <a href="https://arxiv.org/pdf/1508.06576.pdf">paper</a> by Gatys, Ecker, and Bethge describes how this is done.
+  The following is based on their method.
+</p>
+<p>Houses in the style of van Gogh's <i>The Starry Night</i>:</p>
+<div class="gallery">
+  <figure>
+    <img src="final2/data/houses.png" width="320">
+    <figcaption>Content</figcaption>
+  </figure>
+  <figure>
+    <img src="final2/data/starrynight.png" width="320">
+    <figcaption>Style</figcaption>
+  </figure>
+  <figure>
+    <img src="final2/out_path/starry_houses.png" width="320">
+    <figcaption>Result</figcaption>
+  </figure>
+</div>
+<p>
+  First, we load in our images. For each style transfer, a content image and a style image of the same size is needed.
+  We also need an input image that will be modified to match the content and style features.
+  I used a copy of the content image as the input.
+
+  These images are then preprocessed:
+  they are resized so that the shorter side is 256 (to reduce transfer time) and are normalized to fit VGG input requirements.
+
+  As described in the paper, I used a 19 layer VGG network in which I replace the max pooling layers with average pooling.
+</p>
+<p>
+  The key to style transfer is in the content and style representations.
+
+  Representing the content and style at particular points in the CNN will allow us to match an input image to the content and style images.
+
+  Since the reconstruction of the input image from feature maps at higher layers of the network capture high-level content
+  (i.e. objects and their arrangements), we will match feature responses at layer 'conv4_2' of the VGG network to produce the content reconstruction.
+  For the style reconstruction of an input image, we compute the correlation between different features at multiple layers.
+  I chose to match the style representations on the layers 'conv1_1', 'conv2_1', 'conv3_1', 'conv4_1', and 'conv5_1'.
+</p>
+<p>
+  The loss of a content and input image at a particular layer is defined as the mean-squared error between their feature representations at the specified layer.
+  The loss of a style and input image at a particular layer is defined as the mean-squared error between the Gram matrices of their feature representations at the specified layer.
+  The total loss is then the weighted sum of the content loss and the style loss: alpha * (content loss) + beta * (style loss) where alpha and beta are the weighting factors.
+  For the style transfer result shown above, I used an alpha/beta ratio of 1e-3.
+</p>
+<p>
+  In my implementation, I used the Adam optimizer. The style transfer of the houses and <i>The Starry Night</i> used a learning rate of 0.01.
+  I also ran the model for 800 epochs.
+</p>
+
+<h3>More Examples</h3>
+<p>For all of the following examples, the parameters I used were alpha/beta = 1e-4, learning rate = 0.01, and number of epochs = 1000.</p>
+
+<p>Black cat in the style of Matisse's <i>Goldfish</i>:</p>
+<div class="gallery">
+  <figure>
+    <img src="final2/data/cat.png" width="250">
+    <figcaption>Content</figcaption>
+  </figure>
+  <figure>
+    <img src="final2/data/goldfish.jpg" width="250">
+    <figcaption>Style</figcaption>
+  </figure>
+  <figure>
+    <img src="final2/out_path/cat_matisse2.png" width="250">
+    <figcaption>Result</figcaption>
+  </figure>
+</div>
+<p>Scenic Norwegian road in the style of Studio Ghibli's <i>My Neighbor Totoro</i>:</p>
+<div class="gallery">
+  <figure>
+    <img src="final2/data/scenery.png" width="320">
+    <figcaption>Content</figcaption>
+  </figure>
+  <figure>
+    <img src="final2/data/ghibli.jpeg" width="320">
+    <figcaption>Style</figcaption>
+  </figure>
+  <figure>
+    <img src="final2/out_path/scenery_ghibli2.png" width="320">
+    <figcaption>Result</figcaption>
+  </figure>
+</div>
+<p>Small Norwegian street in the style of Seurat's <i>A Sunday Afternoon on the Island of La Grande Jatte</i>:</p>
+<div class="gallery">
+  <figure>
+    <img src="final2/data/streetshops.png" width="250">
+    <figcaption>Content</figcaption>
+  </figure>
+  <figure>
+    <img src="final2/data/seurat.jpeg" width="250">
+    <figcaption>Style</figcaption>
+  </figure>
+  <figure>
+    <img src="final2/out_path/streetshops_seurat2.png" width="250">
+    <figcaption>Result</figcaption>
+  </figure>
+</div>
+
+
+</body>
+</html>
