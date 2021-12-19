@@ -1,0 +1,517 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>CS 194-26 Project 2</title>
+  <meta name="description" content="Filters and Frequencies">
+  <meta name="author" content="Monica Tang">
+
+  <style>
+      *{
+          font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      }
+      p {
+        line-height: 1.5;
+      }
+      body {
+          margin: 10%;
+          margin-top: 5%;
+          margin-bottom: 5%;
+      }
+      img {
+        margin: 5px;
+      }
+      figure {
+        margin: 5px;
+      }
+      figcaption{
+          text-align: center;
+      }
+      .gallery {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: visible;
+      }
+      .center {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .credit {
+        text-align: right;
+        margin-right: 5%;
+        color: dimgray;
+        font-size: small;
+      }
+  </style>
+
+</head>
+
+<body>
+<h1>Filters and Frequencies</h1>
+<h4>Project 2</h4>
+<h3>Monica Tang</h3>
+<hr>
+<h2>Part 1: Filters</h2>
+<p>The goal is to compute the gradient magnitude of an image. The following details several approaches.</p>
+
+<h3>Part 1.1: Finite Difference Operator</h3>
+<p>
+  The first way is to obtain the partial derivatives of an image in both the x and y directions.
+  We do this by convolving the images with the difference operators D_x and D_y.
+</p>
+<img src="dx_dy_latex.png" class="center">
+
+<p>Then, we use the partial derivatives of the image to calculate the gradient magnitude.</p>
+ <img src="gradient_magnitude_equation.png" class="center" width="250px">
+
+<p>We can also obtain the edge image by binarizing the gradient magnitude. In the following example, I used a threshold of 0.18</p>
+
+<div class="gallery">
+  <figure>
+    <img src="data/cameraman.png" width="200">
+    <figcaption>Original</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cameraman_dx.jpg" width="200">
+    <figcaption>Convolved with Dx</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cameraman_dy.jpg" width="200">
+    <figcaption>Convolved with Dy</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cameraman_gradm.jpg" width="200">
+    <figcaption>Gradient Magnitude</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cameraman_gradm_bin.jpg" width="200">
+    <figcaption>Binarized</figcaption>
+  </figure>
+</div>
+
+<br>
+
+<h3>Part 1.2: Derivative of Gaussian (DoG) Filter</h3>
+<p>
+  Observe that the edge image above contains noise. Since we would like to reduce the amount of noise,
+  we can blur the original image by convolving it with a Gaussian filter, G, prior to performing the steps in Part 1.1.
+  This time, I use a threshold of 0.07 for the binarized gradient magnitudes.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/out_cameraman_blur.jpg" width="200">
+    <figcaption>Blurred: Convolved with G</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cameraman_blur_dx.jpg" width="200">
+    <figcaption>Convolved with Dx</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cameraman_blur_dy.jpg" width="200">
+    <figcaption>Convolved with Dy</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cameraman_blur_gradm.jpg" width="200">
+    <figcaption>Blurred Gradient Magnitude</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cameraman_blur_gradm_bin.jpg" width="200">
+    <figcaption>Blurred Binarized</figcaption>
+  </figure>
+</div>
+
+<p>Now, the edge image is less noisy.</p>
+<p>However, we can actually reduce the amount of computations without sacrificing the quality of our edge image.</p>
+<p>
+  Above, we needed to convolve the image with the Gaussian as well as each partial derivative.
+  To reduce the number of convolutions as well as to be able to reuse the filters, we can pre-convolve the difference operators with the Gaussian.
+  Then, we can also reuse these Derivative of Gaussian (DoG) filters on other images.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="out_path/out_DoG_x.jpg" width="150">
+    <figcaption>Dx of G</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_DoG_y.jpg" width="150">
+    <figcaption>Dy of G</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="data/cameraman.png" width="200">
+    <figcaption>Original</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cameraman_DoG_x.jpg" width="200">
+    <figcaption>Convolved with Dx of G</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cameraman_DoG_y.jpg" width="200">
+    <figcaption>Convolved with Dy of G</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cameraman_DoG_gradm.jpg" width="200">
+    <figcaption>DoG Gradient Magnitude</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cameraman_DoG_gradm_bin.jpg" width="200">
+    <figcaption>DoG Binarized</figcaption>
+  </figure>
+</div>
+<p>
+  As expected, this edge image result is the same as before.
+</p>
+
+<hr>
+
+<h2>Part 2: Frequencies</h2>
+<h3>Part 2.1: Image "Sharpening"</h3>
+<p>
+  By boosting an image's high frequencies, we are able to artificially sharpen the image.
+  The high frequencies can be computed by subtracting the low frequencies from the original image.
+  Again, we use a Gaussian filter to blur the image and obtain the low frequencies.
+</p>
+<p>
+  We can combine these steps into a single convolution operation called the unsharp mask filter, which takes in a parameter alpha.
+  This parameter, alpha, is the scaling factor for the high frequencies, and it determines how sharp the image becomes.
+  For example, convolving an image with an unsharp mask filter of alpha = 0 gives us back the original image while using higher alphas gives us increasingly sharper images.
+</p>
+<p>
+  Below are several examples of "sharpened" images. <br>
+  For 'timessquare.jpg' and 'storefront.jpg', the originals are first blurred, and then the sharpening is performed on the blurred images.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="data/taj.jpeg" width="200">
+    <figcaption>Original: taj.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_taj_sharp.jpg" width="200">
+    <figcaption>Sharpened: alpha = 1</figcaption>
+  </figure>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="data/timessquare.jpg" width="300">
+    <figcaption>Original: timessquare.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_timessquare_blur.jpg" width="300">
+    <figcaption>Blurred</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_timessquare_sharp.jpg" width="300">
+    <figcaption>Sharpened: alpha = 5</figcaption>
+  </figure>
+</div>
+<p class="credit">Image Credit: Hyacinth</p>
+
+<div class="gallery">
+  <figure>
+    <img src="data/storefront.jpg" width="300">
+    <figcaption>Original: storefront.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_storefront_blur.jpg" width="300">
+    <figcaption>Blurred</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_storefront_sharp.jpg" width="300">
+    <figcaption>Sharpened: alpha = 5</figcaption>
+  </figure>
+</div>
+<p class="credit">Image Credit: Hyacinth</p>
+
+
+<h3>Part 2.2: Hybrid Images</h3>
+<p>
+  "Look! Down below! It's a mouse! It's a mouse! It's...both!"
+</p>
+<div class="gallery">
+  <figure>
+    <img src="data/mouse_computer.jpg" height="200">
+    <figcaption>mouse_computer.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="data/mouse_animal.jpg" height="200">
+    <figcaption>mouse_animal.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_mouse_hybrid.jpg" height="200">
+    <figcaption>Hybrid</figcaption>
+  </figure>
+</div>
+<p>
+  We can take advantage of the limits of human visual perception and create hybrid images in which the viewer sees one image up close and a different image far away.
+  This is achieved by adding together the high frequencies of one image and the low frequencies of another.
+  At close distances, the human eye is able to pick up the high frequencies, but at far away distances, the human eye can't perceive the high frequencies and only picks up the lower frequencies.
+</p>
+<p> For example, below, you will see Nutmeg up close and Derek far away.</p>
+<div class="gallery">
+  <figure>
+    <img src="hybrid_python/nutmeg.jpg" height="300">
+    <figcaption>nutmeg.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="hybrid_python/DerekPicture.jpg" height="300">
+    <figcaption>DerekPicture.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_nutmeg_derek_hybrid.jpg" height="300">
+    <figcaption>Hybrid</figcaption>
+  </figure>
+</div>
+
+<p>
+  When creating hybrids, it is important that the two images align well. Otherwise, the magical hybrid effect will not work.
+</p>
+<p>
+  I received a special request to combine an "amogus enthusiast", named Jason, with an "amogus drip crewmate".
+  Unfortunately, because the two subjects did not align well, the hybrid effect was unsuccessful.
+  <br><br>
+  Below is the failed case of the "amogus" hybrid:
+</p>
+<div class="gallery">
+  <figure>
+    <img src="data/amogusdrip.jpg" height="300">
+    <figcaption>amogusdrip.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="data/amoguscosplay.jpg" height="300">
+    <figcaption>amoguscosplay.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_amogus_hybrid2.jpg" height="300">
+    <figcaption>Failed Hybrid</figcaption>
+  </figure>
+</div>
+<p class="credit">Image Credit: Jason</p>
+
+<p>
+  The following are several successful hybrids:
+</p>
+<p>
+  The cat-human hybrid was inspired by the cinematic sensation, Cats (2019).
+  I used Nutmeg's photo for the high frequencies and an image of Francesca Hayward, the main character of Cats, for the low frequencies.
+  Both grayscale and color versions are shown below.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="hybrid_python/nutmeg.jpg" height="200">
+    <figcaption>nutmeg.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="data/francescahayward.jpg" height="200">
+    <figcaption>francescahayward.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cats2019_hybrid.jpg" height="200">
+    <figcaption>Hybrid Grayscale</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_cats2019_hybrid_color.jpg" height="200">
+    <figcaption>Hybrid Color</figcaption>
+  </figure>
+</div>
+
+<p>
+  I also made a hybrid of Link and Zelda from the Legend of Zelda franchise.
+  This combination turned out to be the most successful hybrid.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="data/link.jpg" height="150">
+    <figcaption>link.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="data/zelda.jpg" height="150">
+    <figcaption>zelda.jpg</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/out_zelda_link_hybrid.jpg" height="300">
+    <figcaption>Hybrid Grayscale</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_zelda_link_hybrid_color.jpg" height="300">
+    <figcaption>Hybrid Color</figcaption>
+  </figure>
+</div>
+<p>
+  Below illustrates the process of creating the hybrid along with the Fourier analysis images.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="data/link.jpg" height="150">
+    <figcaption>link.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_link_filtered.jpg" height="150">
+    <figcaption>link.jpg High Freq</figcaption>
+  </figure>
+  <figure>
+    <img src="data/zelda.jpg" height="150">
+    <figcaption>zelda.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_zelda_filtered.jpg" height="150">
+    <figcaption>zelda.jpg Low Freq</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_zelda_link_hybrid_color.jpg" height="150">
+    <figcaption>Hybrid Color</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/out_link_freq.jpg" height="175">
+    <figcaption>link.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_link_filtered_freq.jpg" height="175">
+    <figcaption>link.jpg High Freq</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_zelda_freq.jpg" height="175">
+    <figcaption>zelda.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_zelda_filtered_freq.jpg" height="175">
+    <figcaption>zelda.jpg Low Freq</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_zelda_link_hybrid_color_freq.jpg" height="175">
+    <figcaption>Hybrid Color</figcaption>
+  </figure>
+</div>
+
+<br>
+<h3>Multi-Resolution Blending</h3>
+<p>
+  The goal is to blend two images seamlessly using multi-resolution blending.
+  This method computes a smooth seam between the images at each level of frequencies. The result is a smoothly blended image.
+</p>
+<h3>Part 2.3: Gaussian and Laplacian Stacks</h3>
+<p>
+  Before we blend images, we need to implement Gaussian and Laplacian stacks.
+</p>
+<p>
+  In a Gaussian stack, we take an input image and increasingly blur it (convolve it with a Gaussian) at each level.
+  Going down the stack, the image becomes more and more blurred.
+</p>
+<p>
+  In a Laplacian stack, we take the output images of the Gaussian stack and compute the differences between successive images.
+  For instance, the first image of the Laplacian stack would be computed by taking the first image of the Gaussian stack and subtracting the second image of the Guassian stack.
+  After computing all the difference images, we add the last Gaussian stack image to the Laplacian stack.
+  This way, we will be able to reconstruct the original image by adding together all the images of the Laplacian stack.
+</p>
+<h3>Part 2.4: Multi-resolution Blending</h3>
+<p>
+  Now, we can use the Gaussian and Laplacian stacks to blend images.
+  In addition to the two images we would like to blend, we also need a black-and-white mask to identify which portions of the images to blend.
+</p>
+<p>
+  Below is a blend of an apple and an orange, aka the Oraple, with 6 levels.
+</p>
+<div class="gallery">
+  Level 0:
+    <img src="out_path/out_apple_mask_0.jpg" height="175">
+    <img src="out_path/out_orange_mask_0.jpg" height="175">
+    <img src="out_path/out_oraple_blended_0.jpg" height="175">
+</div>
+<div class="gallery">
+  Level 2:
+    <img src="out_path/out_apple_mask_2.jpg" height="175">
+    <img src="out_path/out_orange_mask_2.jpg" height="175">
+    <img src="out_path/out_oraple_blended_2.jpg" height="175">
+</div>
+<div class="gallery">
+  Level 4:
+    <img src="out_path/out_apple_mask_4.jpg" height="175">
+    <img src="out_path/out_orange_mask_4.jpg" height="175">
+    <img src="out_path/out_oraple_blended_4.jpg" height="175">
+</div>
+<div class="gallery">
+  Blended:
+    <img src="out_path/out_apple_mask.jpg" height="175">
+    <img src="out_path/out_orange_mask.jpg" height="175">
+    <img src="out_path/out_oraple_blended.jpg" height="175">
+</div>
+
+<p>
+  This blending method can also be used to recreate fictional characters.
+  <br>
+  Below are two blends inspired from the wildly-popular manga and anime, Jujutsu Kaisen, both using 5 levels.
+</p>
+<div class="gallery">
+  <figure>
+    <img src="data/jujutsukaisen.jpg" height="500">
+    <figcaption>Reference: Yuji Itadori of Jujutsu Kaisen</figcaption>
+  </figure>
+</div>
+<p class="credit">Image Credit: Jujutsu Kaisen</p>
+<br>
+<div class="gallery">
+  <figure>
+    <img src="data/arren.jpg" height="100">
+    <figcaption>arren.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="data/arren_mouth.jpg" height="100">
+    <figcaption>arren_mouth.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="data/arren_mouth_aligned.jpg" height="100">
+    <figcaption>Aligned mouth</figcaption>
+  </figure>
+  <figure>
+    <img src="data/arren_mask.jpg" height="100">
+    <figcaption>Mask</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/out_arren_blended.jpg" width="500">
+    <figcaption>Blended</figcaption>
+  </figure>
+</div>
+<p class="credit">Image Credit: Arren</p>
+
+
+<div class="gallery">
+  <figure>
+    <img src="data/ivy.jpg" height="150">
+    <figcaption>ivy.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="data/ivy_eye.jpg" height="150">
+    <figcaption>ivy_eye.jpg</figcaption>
+  </figure>
+  <figure>
+    <img src="out_path/out_ivy_eye_aligned_bright.jpg" height="150">
+    <figcaption>Aligned eye</figcaption>
+  </figure>
+  <figure>
+    <img src="data/ivy_mask.jpg" height="150">
+    <figcaption>Mask</figcaption>
+  </figure>
+</div>
+<div class="gallery">
+  <figure>
+    <img src="out_path/out_ivy_blended4.jpg" height="400">
+    <figcaption>Blended</figcaption>
+  </figure>
+</div>
+<p class="credit">Image Credit: Ivy</p>
+
+
+</body>
+</html>
