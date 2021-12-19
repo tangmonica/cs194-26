@@ -1,0 +1,156 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="Monica Tang">
+
+  <style>
+      *{
+          font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      }
+      p, ul, li {
+        line-height: 1.5;
+      }
+      .small-text {
+        font-size: small;
+      }
+      body {
+          margin: 20%;
+          margin-top: 5%;
+          margin-bottom: 5%;
+      }
+      .toc {
+        font-size: small;
+      }
+      img {
+        margin: 5px;
+      }
+      figure {
+        margin: 5px;
+      }
+      figcaption{
+          text-align: center;
+      }
+      .gallery {
+        margin-left: 5%;
+        margin-right: 10%;
+        display: flex;
+        overflow-x: visible;
+      }
+      .credit {
+        text-align: right;
+        margin-right: 5%;
+        color: dimgray;
+        font-size: small;
+      }
+      .vl {
+        border-left: 1px solid black;
+        height: 240px;
+      }
+      .code-block {
+        font-family: monospace;
+      }
+      .code-container {
+        display: flex;
+        justify-content: center;
+      }
+      code {
+        font-family: Consolas,"courier new";
+        color: crimson;
+        background-color: #f1f1f1;
+        padding: 2px;
+        font-size: 105%;
+      }
+  </style>
+
+</head>
+
+<body>
+<h2>Intro to Computer Vision and Computational Photography</h2>
+<h4>CS 194-26 Projects</h4>
+<h3>Monica Tang</h3>
+<hr>
+
+<div class="gallery">
+  <figure>
+    <img src="proj1/out_path/out_emir.jpeg" width="200">
+  </figure>
+  <div> <br>
+    <a href="proj1/proj1.html">Colorizing the Prokudin-Gorskii Photo Collection</a> <br><br>
+    <div class="small-text">
+      Prokudin-Gorskii captured thousands of "photos" of the Russian Empire by recording each scene onto glass plates with a red, a green, and a blue filter.
+      This project aims to automatically produce a color image from these RGB plates via image-processing techniques.
+    </div>
+  </div>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="proj2/out_path/out_oraple_blended.jpg" width="200">
+  </figure>
+  <div> <br>
+    <a href="proj2/proj2.html">Filters and Frequencies</a> <br><br>
+    <div class="small-text">
+      This project uses filters and image frequencies to produce a variety of results,
+      including image sharpening, hybrid images, and multi-resolution blending.
+    </div>
+  </div>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="proj3/out_path/andrews/mr_mrs_morph.gif" width="200">
+  </figure>
+  <div> <br>
+    <a href="proj3/proj3.html">Face Morphing and Modeling a Photo Collection</a> <br><br>
+    <div class="small-text">
+      The first part of this project aims to create an animation that morphs one face into another.
+      The second part uses a set of images of a population to compute the average face for that population.
+    </div>
+  </div>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="proj4/proj4a_web/out_path/mosaic/glade_mosaic2.png" width="200">
+  </figure>
+  <div> <br>
+    <a href="proj4/proj4.html">Auto-Stitching Photo Mosaics</a> <br><br>
+    <div class="small-text">
+      The first part of the project explores perspective warps and mosaic stitching.
+      The second part automates the stitching process.
+    </div>
+  </div>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="proj5/out_path/ibug_prediction1.jpg" width="200">
+  </figure>
+  <div> <br>
+    <a href="proj5/proj5.html">Facial Keypoint Detection with Neural Nets</a> <br><br>
+    <div class="small-text">
+      The goal of this project is to automatically detect facial keypoints with a deep convolutional neural network.
+      This project uses the PyTorch library.
+    </div>
+  </div>
+</div>
+
+<div class="gallery">
+  <figure>
+    <img src="projfinal/final2/out_path/starry_houses.png" width="200">
+  </figure>
+  <div> <br>
+    <a href="projfinal/projfinal.html">Image Quilting & Artistic Neural Style Transfer</a> <br><br>
+    <div class="small-text">
+      In the first project, we synthesize larger texture images using small texture samples.
+      We are also able to perform texture transfer, which involves giving an object the appearance of a texture while maintaining its shape.
+      In the second project, we use neural networks to transfer artistic styles to realistic photographs.
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
